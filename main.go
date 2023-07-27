@@ -74,7 +74,7 @@ func main() {
 func getAPIKeyPath() (string, error) {
 	homeDirectory, err := os.UserHomeDir()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get user's home directory: %w", err)
 	}
 	return homeDirectory + "/weatherCLI/apikey", nil
 }
