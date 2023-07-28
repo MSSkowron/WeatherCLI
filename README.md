@@ -72,3 +72,7 @@ Show the hourly forecast (temperature, chance of rain, and condition) for the re
 ## Acknowledgments
 
 - Fatih Color (github.com/fatih/color) - A Go library for colorful terminal text output.
+
+## License
+
+The project is available as open source under the terms of the MIT License.
