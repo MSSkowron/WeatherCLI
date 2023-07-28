@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/fatih/color"
@@ -15,6 +16,9 @@ import (
 
 const (
 	apiBaseURL = "http://api.weatherapi.com/v1/forecast.json"
+	apiDays    = 1
+	apiAqi     = "no"
+	apiAlerts  = "no"
 )
 
 type Weather struct {
@@ -43,59 +47,11 @@ type Weather struct {
 }
 
 func main() {
-	q := "Cracow"
+	city := "Cracow"
 
-	apiKeyPath, err := getAPIKeyPath()
+	weatherAPIKey, err := getAPIKey()
 	if err != nil {
-		log.Fatalf("error getting user's API key: %s", err.Error())
-	}
-
-	if _, err := os.Stat(apiKeyPath + "/weatherCLI/apikey"); err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			if _, err := os.Stat(apiKeyPath + "/weatherCLI"); err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					err := os.Mkdir(apiKeyPath+"/weatherCLI", os.ModePerm)
-					if err != nil {
-						log.Println(err)
-					}
-				} else {
-					log.Fatalln(err)
-				}
-
-			}
-
-			f, err := os.Create(apiKeyPath + "/weatherCLI/apikey")
-			if err != nil {
-				log.Fatalf("error while creating file for storing API Key: %s", err.Error())
-			}
-
-			var key string
-			fmt.Printf("There is no API Key in %s. Enter API Key for api.weatherapi:", apiKeyPath+"/weatherCLI/apikey")
-
-			fmt.Scanln(&key)
-
-			if _, err := f.WriteString(key); err != nil {
-				log.Fatalf("error writing key to apikey file: %s", err.Error())
-			}
-		} else {
-			log.Fatalf("error reading API key: %s", err.Error())
-		}
-	}
-
-	weatherAPIKey, err := readAPIKeyFromFile(apiKeyPath + "/weatherCLI/apikey")
-	if err != nil {
-		log.Fatalf("error reading API key: %s", err.Error())
-	}
-
-	if weatherAPIKey == "" {
-		var key string
-		fmt.Printf("There is no API Key in %s. Enter API Key for api.weatherapi: ", apiKeyPath+"/weatherCLI/apikey")
-
-		fmt.Scanln(&key)
-
-		if err := os.WriteFile(apiKeyPath+"/weatherCLI/apikey", []byte(key), 0644); err != nil {
-			log.Fatalf("error writing key to apikey file: %s", err.Error())
-		}
+		log.Fatalf("error getting API key: %s", err)
 	}
 
 	if len(os.Args) > 2 {
@@ -103,10 +59,10 @@ func main() {
 	}
 
 	if len(os.Args) == 2 {
-		q = os.Args[1]
+		city = os.Args[1]
 	}
 
-	weather, err := fetchWeather(q, weatherAPIKey)
+	weather, err := fetchWeather(city, weatherAPIKey)
 	if err != nil {
 		log.Fatalf("error while fetching weather: %s", err.Error())
 	}
@@ -115,12 +71,66 @@ func main() {
 	printHourlyForecast(weather)
 }
 
-func getAPIKeyPath() (string, error) {
+func getAPIKey() (string, error) {
 	homeDirectory, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get user's home directory: %w", err)
 	}
-	return homeDirectory, nil
+
+	weatherDirectoryPath := filepath.Join(homeDirectory, "weatherCLI")
+	weatherApiKeyPath := filepath.Join(weatherDirectoryPath, "apikey")
+
+	if _, err := os.Stat(weatherApiKeyPath); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			if _, err := os.Stat(weatherDirectoryPath); err != nil {
+				if errors.Is(err, os.ErrNotExist) {
+					if err := os.Mkdir(weatherDirectoryPath, os.ModePerm); err != nil {
+						return "", fmt.Errorf("failed to create weatherCLI directory: %w", err)
+					}
+				} else {
+					return "", fmt.Errorf("failed to access weatherCLI directory: %w", err)
+				}
+			}
+
+			f, err := os.Create(weatherApiKeyPath)
+			if err != nil {
+				return "", fmt.Errorf("error while creating file for storing API Key: %w", err)
+			}
+
+			defer f.Close()
+
+			var key string
+			fmt.Printf("There is no API Key in %s. Enter API Key for api.weatherapi: ", weatherApiKeyPath)
+			fmt.Scanln(&key)
+
+			if _, err := f.WriteString(key); err != nil {
+				return "", fmt.Errorf("error writing key to apikey file: %w", err)
+			}
+
+			return key, nil
+		}
+
+		return "", fmt.Errorf("error reading API key: %w", err)
+	}
+
+	key, err := readAPIKeyFromFile(weatherApiKeyPath)
+	if err != nil {
+		return "", fmt.Errorf("error reading API key: %w", err)
+	}
+
+	if key == "" {
+		var newKey string
+		fmt.Printf("There is no API Key in %s. Enter API Key for api.weatherapi: ", weatherApiKeyPath)
+		fmt.Scanln(&newKey)
+
+		if err := os.WriteFile(weatherApiKeyPath, []byte(newKey), 0644); err != nil {
+			return "", fmt.Errorf("error writing key to apikey file: %w", err)
+		}
+
+		return newKey, nil
+	}
+
+	return key, nil
 }
 
 func readAPIKeyFromFile(filePath string) (string, error) {
@@ -139,7 +149,7 @@ func readAPIKeyFromFile(filePath string) (string, error) {
 }
 
 func fetchWeather(city, apiKey string) (*Weather, error) {
-	url := fmt.Sprintf("%s?key=%s&q=%s&days=1&aqi=no&alerts=no", apiBaseURL, apiKey, city)
+	url := fmt.Sprintf("%s?key=%s&q=%s&days=%d&aqi=%s&alerts=%s", apiBaseURL, apiKey, city, apiDays, apiAqi, apiAlerts)
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch weather data: %w", err)
