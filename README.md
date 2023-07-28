@@ -14,29 +14,28 @@ Make sure you have Go installed on your system.
 
 1. Clone this repository to your local machine:
 
-```
-git clone https://github.com/MSSkowron/WeatherCLI.git
-```
+    ```
+    git clone https://github.com/MSSkowron/WeatherCLI.git
+    ```
 
 2. Change into the project directory:
 
-```
-cd WeatherCLI
-```
+    ```
+    cd WeatherCLI
+    ```
 
 3. Build the application:
 
-```
-go build -o weathercli
-```
+    ```
+    go build -o weathercli
+    ```
 
 4. [Optional] Add the built binary to your /bin folder to have it accessible globally.
-
-For example, on Linux:
-
-```
-mv weathercli /usr/local/bin
-```
+    For example, on Linux:
+    
+    ```
+    mv weathercli /usr/local/bin
+    ```
 
 ## Usage
 
