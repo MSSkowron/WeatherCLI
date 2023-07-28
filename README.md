@@ -60,7 +60,9 @@ The first time you run the WeatherCLI, it will prompt you to enter your Weather 
 ## Features
 
 Display the current weather (temperature and condition) for the specified city.
-Show the hourly forecast (temperature, chance of rain, and condition) for the next 24 hours.
+Show the hourly forecast (temperature, chance of rain, and condition) for the rest of the current day.
+
+![Example output](./screenshots/output.png)
 
 ## Build with
 
